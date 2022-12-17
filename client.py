@@ -53,6 +53,7 @@ def recieve(message: str) -> None:
 
     elif (mtype == "INVITE"):
         # join the chat room
+        roomname = body
 
     elif (mtype == "SEND"):
 
@@ -125,9 +126,14 @@ def recieve(message: str) -> None:
 
     elif (mtype == "END"):
 
-        print(timestamp + "[SERVER]: Connection Closed")
-        # close connection with server
-        # return to main menu?
+        if (body != roomname):
+            # reply with send("DECLINE", sender, 102)
+
+        else:
+            print(timestamp + "[SERVER]: Connection Closed")
+            # close connection with server
+            # return to main menu?
+        # if/else
         
     else:
         # reply with send("DECLINE", sender, 999)
