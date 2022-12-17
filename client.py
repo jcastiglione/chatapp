@@ -14,13 +14,13 @@ ERRORS = {
 
 #LOCAL VARS
 ishost = false
-displayname = ""
-roomname = ""
+displayname = "NONE"
+roomname = "NONE"
 users = {
     "some user", "some IP or socket or something"
 }
 
-def send(mtype: str, recip: str, body: str = None):
+def send(mtype: str, recip: str, body: str = None) -> str:
     return mtype + " " +\
         displayname + " " +\
         dt.now().strftime("%H:%M") + " " +\
@@ -28,11 +28,33 @@ def send(mtype: str, recip: str, body: str = None):
         body
 # send()
 
-def recieve(message: str):
+def recieve(message: str) -> None:
     head, body = message.split("\n", 1)
     mtype, sender, timestamp, recip = head.split(" ", 3)
 
-    if (mtype == "SEND"):
+    if (mtype == "SEARCH"):
+
+        if not ishost:
+            # reply with ("DECLINE", "ALL", 101)
+
+        else:
+            # reply with ("REVEAL", "ALL", roomname)
+        # if/else
+
+    elif (mtype == "REVEAL"):
+
+        if ishost:
+            # reply with ("DECLINE", sender, 100)
+
+        else:
+            print("Room found: " + body)
+            # do something
+        # if/else
+
+    elif (mtype == "INVITE"):
+        # join the chat room
+
+    elif (mtype == "SEND"):
 
         if (recip.upper() == "HOST"):
             if not ishost:
@@ -70,7 +92,7 @@ def recieve(message: str):
     elif (mtype == "JOIN"):
         
         if not ishost:
-            # reply with send("DECLINE", sender, 100)
+            # reply with send("DECLINE", sender, 101)
             
         else :
             
@@ -84,19 +106,64 @@ def recieve(message: str):
                 # reply with send("INVITE", sender)
             # if/else
         # if/else
-    
-    elif (mtype == "INVITE"):
-        # join the chat room
-    
+
     elif (mtype == "DECLINE"):
         print("[DECLINED]: " + Errors[body])
         # do something
-    
+
+    elif (mtype == "DISCONNECT"):
+
+        if not ishost:
+            # reply with send("DECLINE", sender, 101)
+            
+        elif (sender not in users):
+            # reply with send("DECLINE", sender, 100)
+
+        else:
+            # reply with ("END", sender)
+            # close connection with sender
+
+    elif (mtype == "END"):
+
+        print(timestamp + "[SERVER]: Connection Closed")
+        # close connection with server
+        # return to main menu?
+        
     else:
         # reply with send("DECLINE", sender, 999)
     # if/else
-        
 # recieve()
+
+def broadcast() -> None:
+    #broadcast to all users asking for chat rooms
+    #message is send("SEARCH", "ALL")
+# broadcast()
+
+def send_message(msg: str) -> None:
+
+    cmd = None
+    body = msg
+    
+    if (msg.startswith("/"):
+        cmd, body = msg.split(" ", 1)
+    # if
+
+    if (cmd == "/q"):
+        #send to host send("DISCONNECT", "HOST")
+
+    elif (cmd == "/w"):
+        recip, body = body.split(" ", 1)
+
+        #send to host send("SEND", recip, body)
+
+    elif (cmd == None):
+        #send to host send("SEND", "HOST", body)
+
+    else:
+        print(timestamp + "[SERVER]: Incorrect Message Formatting")
+
+    # if/else
+# send_message()
 
 
 if __name__ == "__main__":
