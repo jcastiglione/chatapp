@@ -9,6 +9,7 @@ ERRORS = {
     102: "Incorrect Room Name",
     103: "Recipient Not Found",
     200: "Display Name not Available"
+    999: "Bad Request"
 }
 
 #LOCAL VARS
@@ -92,7 +93,7 @@ def recieve(message: str):
         # do something
     
     else:
-        return
+        # reply with send("DECLINE", sender, 999)
     # if/else
         
 # recieve()
