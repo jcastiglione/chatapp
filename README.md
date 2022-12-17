@@ -28,4 +28,4 @@ Pull requests are not open to outside contributors.
 ### License ###
 
 This project was created by Jack Castiglione, Nathan Daniels, and Larry Tieken. It is free software 
-and may be redistributed under the terms specified in the [LICENSE](https://github.com/Rahul-Rangarajan/Photo-Editing-Software-/blob/master/LICENSE) file.
+and may be redistributed under the terms specified in the [LICENSE](https://github.com/jcastiglione/chatapp/blob/master/LICENSE) file.
