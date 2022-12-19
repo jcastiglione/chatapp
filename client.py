@@ -4,12 +4,13 @@ from datetime import datetime as dt
 
 #CONSTANTS
 ERRORS = {
-    100: "Recipeint Mismatch",
-    101: "Recipeint is not a Host",
-    102: "Incorrect Room Name",
-    103: "Recipient Not Found",
-    200: "Display Name not Available"
-    999: "Bad Request"
+    100: "OK",
+    200: "Wrong Recipient",
+    201: "Recipient is not Type:Host",
+    202: "Incorrect Room Recipient",
+    203: "Desired Recipient Not Found",
+    300: "DisplayName Not Available",
+    400: "Bad Request"
 }
 
 #LOCAL VARS
@@ -20,13 +21,21 @@ users = {
     "some user", "some IP or socket or something"
 }
 
-def send(mtype: str, recip: str, body: str = None) -> str:
+def req(mtype: str, recip: str, body: str = None) -> str:
     return mtype + " " +\
-        displayname + " " +\
+        recip + " " +\
         dt.now().strftime("%H:%M") + " " +\
-        recip + "/n" +\
+        displayname + "/n" +\
         body
-# send()
+# req()
+
+def res(mtype: str, code: int, recip: str, body: str = None) -> str:
+    return mtype + " " +\
+        code + " " +\
+        recip + " " +\
+        displayname + "/n" +\
+        body
+# res()
 
 def recieve(message: str) -> None:
     head, body = message.split("\n", 1)
