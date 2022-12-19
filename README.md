@@ -6,9 +6,9 @@ Description description description description
 ### Requirements ###
 
 * [Install Python](https://www.python.org/downloads/)
-* Curses
+* Netifaces
 ```
-pip install windows-curses
+pip install netifaces
 ```
 
 
