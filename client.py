@@ -1,6 +1,8 @@
+import netifaces as neti
 import socket
 import os
 from datetime import datetime as dt
+import tkinter as tk
 
 #CONSTANTS
 ERRORS = {
@@ -25,7 +27,7 @@ def req(mtype: str, recip: str, body: str = None) -> str:
     return mtype + " " +\
         recip + " " +\
         dt.now().strftime("%H:%M") + " " +\
-        displayname + "/n" +\
+        displayname + "\n" +\
         body
 # req()
 
@@ -33,7 +35,7 @@ def res(mtype: str, code: int, recip: str, body: str = None) -> str:
     return mtype + " " +\
         code + " " +\
         recip + " " +\
-        displayname + "/n" +\
+        displayname + "\n" +\
         body
 # res()
 
