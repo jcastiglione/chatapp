@@ -1,148 +1,90 @@
+import netifaces as neti
 import socket
 import os
 from datetime import datetime as dt
+import tkinter as tk
 
 #CONSTANTS
+ENC_TYPE = 'utf-8'
 ERRORS = {
-    100: "Recipeint Mismatch",
-    101: "Recipeint is not a Host",
-    102: "Incorrect Room Name",
-    103: "Recipient Not Found",
-    200: "Display Name not Available"
-    999: "Bad Request"
+    100: "OK",
+    200: "Wrong Recipient",
+    201: "Incorrect Room Recipient",
+    202: "Recipient is not Type:Host",
+    203: "Recipient is not Type:User",
+    204: "Desired Recipient Not Found",
+    300: "DisplayName Not Available",
+    301: "User has been blacklisted",
+    400: "Bad Request"
 }
 
 #LOCAL VARS
-ishost = false
+ishost = False
 displayname = "NONE"
 roomname = "NONE"
 users = {
     "some user", "some IP or socket or something"
 }
+blacklist = ["ip1", "ip2"]
 
-def send(mtype: str, recip: str, body: str = None) -> str:
+def now() -> str:
+    return dt.now().strftime("%H:%M")
+# now()
+
+def createCheckSum(msg: bytes) -> bytes:
+    out = 0
+
+    for b in msg:
+        out += b
+    # for
+
+    return bytes(out % 65535, ENC_TYPE)
+# createCheckSum
+
+def req(mtype: str, recip: str, body: str = None) -> str:
     return mtype + " " +\
-        displayname + " " +\
-        dt.now().strftime("%H:%M") + " " +\
-        recip + "/n" +\
+        now() + " " +\
+        recip + " " +\
+        displayname + "\n" +\
         body
-# send()
+# req()
+
+def res(mtype: str, code: int, recip: str, body: str = None) -> str:
+    return mtype + " " +\
+        code + " " +\
+        recip + " " +\
+        displayname + "\n" +\
+        body
+# res()
 
 def recieve(message: str) -> None:
     head, body = message.split("\n", 1)
-    mtype, sender, timestamp, recip = head.split(" ", 3)
+    mtype, code, recip, sender = body.split(" ", 3)
 
-    if (mtype == "SEARCH"):
+    if (recip != displayName):
+        # respond with res("DECLINE", 200, sender)
+        return 4
+    # if
 
-        if not ishost:
-            # reply with ("DECLINE", "ALL", 101)
+    if (not ishost and mtype in ["JOIN", "DISCONNECT", "FETCH"]):
+        # respond with res("DECLINE", 202, sender)
+        return 4
+    # if
 
-        else:
-            # reply with ("REVEAL", "ALL", roomname)
-        # if/else
+    if (ishost and mtype in ["INVITE", "RECIEVE", "CATCH"]):
+        # respond with res("DECLINE", 203, sender)
+        return 4
+    #if
 
-    elif (mtype == "REVEAL"):
+    # BLACKLIST CATCHING GOES HERE
 
-        if ishost:
-            # reply with ("DECLINE", sender, 100)
+    # MORE STUFF
 
-        else:
-            print("Room found: " + body)
-            # do something
-        # if/else
-
-    elif (mtype == "INVITE"):
-        # join the chat room
-        roomname = body
-
-    elif (mtype == "SEND"):
-
-        if (recip.upper() == "HOST"):
-            if not ishost:
-                # reply with ("DECLINE", sender, 101)
-
-            else:
-                print(timeStamp + "[" + sender + "]: " + body)
-    
-                for (user in users.key):
-                    if (user.key != displayname):
-                        # send to user send("SHOW, user, body)
-                    # if
-                # for
-            # if/else
-            
-        elif (recip not in users.keys):
-            # reply with send("DECLINE", sender, 103)
-
-        else:
-            # send to recip send("SHOW", user, body)
-
-        # if/else
-    
-    elif (mtype == "SHOW"):
-
-        if (recip != displayname):
-            # reply with send("DECLINE", sender, 102)
-
-        else:
-            print(timeStamp + "[" + sender + "]: " + body)
-            # do something
-
-        # if/esle
-    
-    elif (mtype == "JOIN"):
-        
-        if not ishost:
-            # reply with send("DECLINE", sender, 101)
-            
-        else :
-            
-            if (sender in users.keys):
-                # reply with send("DECLINE", sender, 200)
-
-            else if (recip != roomname):
-                # reply with send("DECLINE", sender, 102)
-
-            else:
-                # reply with send("INVITE", sender)
-            # if/else
-        # if/else
-
-    elif (mtype == "DECLINE"):
-        print("[DECLINED]: " + Errors[body])
-        # do something
-
-    elif (mtype == "DISCONNECT"):
-
-        if not ishost:
-            # reply with send("DECLINE", sender, 101)
-            
-        elif (sender not in users):
-            # reply with send("DECLINE", sender, 100)
-
-        else:
-            # reply with ("END", sender)
-            # close connection with sender
-
-    elif (mtype == "END"):
-
-        if (body != roomname):
-            # reply with send("DECLINE", sender, 102)
-
-        else:
-            print(timestamp + "[SERVER]: Connection Closed")
-            # close connection with server
-            # return to main menu?
-        # if/else
-        
-    else:
-        # reply with send("DECLINE", sender, 999)
-    # if/else
 # recieve()
 
 def broadcast() -> None:
     #broadcast to all users asking for chat rooms
-    #message is send("SEARCH", "ALL")
+    return 4
 # broadcast()
 
 def send_message(msg: str) -> None:
@@ -150,12 +92,13 @@ def send_message(msg: str) -> None:
     cmd = None
     body = msg
     
-    if (msg.startswith("/"):
+    if (msg.startswith("/")):
         cmd, body = msg.split(" ", 1)
     # if
 
     if (cmd == "/q"):
         #send to host send("DISCONNECT", "HOST")
+        return 4
 
     elif (cmd == "/w"):
         recip, body = body.split(" ", 1)
@@ -164,6 +107,7 @@ def send_message(msg: str) -> None:
 
     elif (cmd == None):
         #send to host send("SEND", "HOST", body)
+        return 4
 
     else:
         print(timestamp + "[SERVER]: Incorrect Message Formatting")
@@ -173,5 +117,5 @@ def send_message(msg: str) -> None:
 
 
 if __name__ == "__main__":
-    return
+    print(4)
 # main()

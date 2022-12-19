@@ -6,6 +6,10 @@ Description description description description
 ### Requirements ###
 
 * [Install Python](https://www.python.org/downloads/)
+* Netifaces
+```
+pip install netifaces
+```
 
 
 ### Installation ###
@@ -14,6 +18,7 @@ Simply download the contents of this repository and run client.py.
 ```
 python client.py
 ```
+
 
 ### Authors ###
 
