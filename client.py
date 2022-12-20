@@ -1,10 +1,11 @@
 import netifaces as neti
 import socket
 import os
+import threading
+from protocols import Mp
 import tkinter as tk
 
 # CONSTANTS
-ENC_TYPE = 'utf-8'
 VERBS = {
     'sen': "SEND",
     'jn': "JOIN",
@@ -26,10 +27,11 @@ ERRORS = {
     301: "User has been blacklisted",
     400: "Bad Request"
 }
+PORT = 9020
 
 # LOCAL VARS
 is_host = False
-displayname = "NONE"
+client: Mp = "NONE"
 room_name = "NONE"
 self_ip = "NONE"
 
@@ -37,18 +39,18 @@ users = {}  # {"some user" : "some IP or socket or something", ...}
 blacklist = []  # ["ip1", "ip2", ...]
 
 
-def createCheckSum(msg: bytes) -> bytes:
+def create_check_sum(msg: bytes) -> bytes:
     out = 0
 
     for b in msg:
         out += b
     # for
 
-    return bytes(out % 65535, ENC_TYPE)
+    return bytes(out % 65535, Mp.ENC_TYPE)
 # createCheckSum
 
 
-def checkSum(msg: bytes) -> bool:
+def check_sum(msg: bytes) -> bool:
     check = 0
     sum = 0
 
@@ -92,7 +94,7 @@ def recieve(room: socket.socket, message: str) -> None:
     head, body = message.split("\n", 1)
     mtype, code, recip, sender = body.split(" ", 3)
 
-    if (recip != displayname):
+    if (recip != client.displayname):
         # respond with res("DECLINE", 200, sender)
         pass
     # if
@@ -117,6 +119,54 @@ def recieve(room: socket.socket, message: str) -> None:
         pass
     # if
 
+    if mtype == "SEND":
+        # print("[" + code + "] " + sender + ": " + body)
+
+        for user in users:
+            # send to user req("SEND", user.key?, body)
+            # NEEDS A WAY TO SHOW THE ORIGINAL SENDER
+            pass
+        # for
+        pass
+
+    elif mtype == "JOIN":
+        if (sender in users.keys):
+            pass
+            # respond with res("DECLINE", 300, sender)
+        # if
+        pass
+
+    elif mtype == "DISCONNECT":
+        print("[" + Mp.now() + "] SERVER: Connection Closed")
+        room.close()
+
+    elif mtype == "FETCH":
+        if (body in users.keys):
+            # respond with res("CATCH", 100, sender, users[body])
+            pass
+        else:
+            # respond with res("DECLINE, 204, sender")
+            pass
+        # if/else
+
+    elif mtype == "INVITE":
+        print("[" + Mp.now() + "] SERVER: Connection Opened")
+
+    elif mtype == "RECIEVE":
+        # clear message cache maybe? Not sure if anything actually needs to happen here.
+        # maybe this is when the user's message gets brought to the gui
+        pass
+
+    elif mtype == "CATCH":
+        # open a connection with the ip in the body of the message
+        # send whatever the user typed to that user
+        pass
+
+    else:
+        # respond with res("DECLINE", 400, sender)
+        pass
+    # if/else
+
 # recieve()
 
 
@@ -126,7 +176,7 @@ def broadcast() -> None:
 # broadcast()
 
 
-def send_message(room: socket.socket, msg: str) -> None:
+def send_typed_message(room: socket.socket, instance: Mp, msg: str) -> None:
     cmd = None
     body = msg
 
@@ -147,10 +197,25 @@ def send_message(room: socket.socket, msg: str) -> None:
         # send to host req("FETCH", "HOST", recip)
 
     elif (cmd == "/b"):
-        pass
+
+        if is_host:
+            #send_all("hello i kicked u lmao")
+            blacklist.append(room.getpeername())
+            room.close()
+        else:
+            #print("[" + now() + "] SERVER: Insufficent Permissions")
+            pass
+        # if/else
 
     elif (cmd == "/k"):
-        pass
+
+        if is_host:
+            #send_all("hello i kicked u lmao")
+            room.close()
+        else:
+            #print("[" + now() + "] SERVER: Insufficent Permissions")
+            pass
+        # if/else
 
     elif (cmd == None):
         # send to host send("SEND", "HOST", body)
@@ -161,7 +226,35 @@ def send_message(room: socket.socket, msg: str) -> None:
         pass
 
     # if/else
-# send_message()
+# send_typed_message()
+
+
+def handle_client(conn: socket.socket, addr: str) -> None:
+    pass
+# handle_client()
+
+
+def start_server(socket: socket.socket) -> None:
+    socket.listen(5)
+
+    while True:
+        conn, addr = socket.accept()
+        thread = threading.Thread(target=handle_client, args=(conn, addr))
+        thread.start()
+# start_server()
+
+
+def start_client() -> None:
+    name = input("Choose display name: ")
+    client = Mp(name)
+    client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    client_socket.connect(('10.103.65.12', PORT))
+
+    while True:
+        msg = input("Enter Message: ")
+        send_typed_message(client_socket, client, msg)
+    # while
+# start_client()
 
 
 if __name__ == "__main__":
@@ -174,4 +267,15 @@ if __name__ == "__main__":
                 break
 
     print(network_setting)
+
+    choice = input('1 for server\n2 for client\n')
+    if choice == 1:
+        is_host = True
+        server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        server_socket.bind((self_ip, PORT))
+        server_thread = threading.Thread(
+            target=start_server, args=(server_socket,))
+        server_thread.start()
+    if choice == 2:
+        start_client()
 # main()
