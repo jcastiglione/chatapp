@@ -97,28 +97,23 @@ def recieve(room: socket.socket, message: str) -> None:
     mtype, code, recip, sender = body.split(" ", 3)
 
     if (recip != client.displayname):
-        # respond with res("DECLINE", 200, sender)
-        pass
+        send_all( Mp.res("DECLINE", 200, sender), room)
     # if
 
     if (mtype == "DECLINE"):
-        pass
-        #print("[" + now() + "] SERVER: Message Declined - " + ERRORS[code])
+        print("[" + now() + "] SERVER: Message Declined - " + ERRORS[code])
     # if
 
     if (not is_host and mtype in ["JOIN", "DISCONNECT", "FETCH"]):
-        # respond with res("DECLINE", 202, sender)
-        pass
+        send_all( Mp.res("DECLINE", 202, sender), room)
     # if
 
     if (is_host and mtype in ["INVITE", "RECIEVE", "CATCH"]):
-        # respond with res("DECLINE", 203, sender)
-        pass
+        send_all( Mp.res("DECLINE", 203, sender), room)
     # if
 
     if (room.getpeername() in blacklist):
-        # respond with res("DECLINE", 301, sender)
-        pass
+        send_all( Mp.res("DECLINE", 301, sender), room)
     # if
 
     if mtype == "SEND":
@@ -134,7 +129,7 @@ def recieve(room: socket.socket, message: str) -> None:
     elif mtype == "JOIN":
         if (sender in users.keys):
             pass
-            # respond with res("DECLINE", 300, sender)
+            send_all( Mp.res("DECLINE", 300, sender), room)
         # if
         pass
 
@@ -144,11 +139,9 @@ def recieve(room: socket.socket, message: str) -> None:
 
     elif mtype == "FETCH":
         if (body in users.keys):
-            # respond with res("CATCH", 100, sender, users[body])
-            pass
+            send_all( Mp.res("CATCH", 100, sender, users[body]), room)
         else:
-            # respond with res("DECLINE, 204, sender")
-            pass
+            send_all( Mp.res("DECLINE, 204, sender"), room)
         # if/else
 
     elif mtype == "INVITE":
@@ -165,8 +158,7 @@ def recieve(room: socket.socket, message: str) -> None:
         pass
 
     else:
-        # respond with res("DECLINE", 400, sender)
-        pass
+        send_all( Mp.res("DECLINE", 400, sender), room)
     # if/else
 
 # recieve()
@@ -249,8 +241,16 @@ def send_typed_message(room: socket.socket, instance: Mp, msg: str) -> None:
     # if
 
     if (cmd == "/q"):
-        pass
-        #send_all(req(VERBS["dis"], 'SERVER'), room)
+
+        if not is_host:
+            send_all( req("DISCONNECT", room_name), room)
+
+        else:
+            pass
+            # send message to all users indicating room closed
+            # close all connections
+
+        # if/else
 
     elif (cmd == "/w"):
         pass
@@ -263,31 +263,32 @@ def send_typed_message(room: socket.socket, instance: Mp, msg: str) -> None:
     elif (cmd == "/b"):
 
         if is_host:
-            #send_all("hello i kicked u lmao")
+            recip, body = body.split(" ", 1)
+            send_all( req("SEND", recip, "BANNED BY HOST"), room)
+                          
             blacklist.append(room.getpeername())
             room.close()
         else:
-            #print("[" + now() + "] SERVER: Insufficent Permissions")
-            pass
+            print("[" + now() + "] SERVER: Insufficent Permissions")
         # if/else
 
     elif (cmd == "/k"):
 
         if is_host:
-            #send_all("hello i kicked u lmao")
+            recip, body = body.split(" ", 1)
+            send_all(req("SEND", recip, "KICKED BY HOST", room))
+                          
             room.close()
         else:
-            #print("[" + now() + "] SERVER: Insufficent Permissions")
-            pass
+            print("[" + now() + "] SERVER: Insufficent Permissions")
         # if/else
 
     elif (cmd == None):
-        # send to host send("SEND", "HOST", body)
+        send_all( (req("SEND", room_name, body), room)
         pass
 
     else:
-        #print("[" + now() + "] SERVER: Incorrect Message Formatting")
-        pass
+        print("[" + now() + "] SERVER: Incorrect Message Formatting")
 
     # if/else
 # send_typed_message()
@@ -353,4 +354,5 @@ if __name__ == "__main__":
         server_thread.start()
     if choice == '2':
         start_client()
+    # if
 # main()
