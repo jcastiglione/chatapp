@@ -1,11 +1,20 @@
 import netifaces as neti
 import socket
 import os
-from datetime import datetime as dt
 import tkinter as tk
 
 # CONSTANTS
 ENC_TYPE = 'utf-8'
+VERBS = {
+    'sen': "SEND",
+    'jn': "JOIN",
+    'dis': 'DISCONNECT',
+    'fet': 'FETCH',
+    'inv': 'INVITE',
+    'rec': 'RECIEVE',
+    'cat': 'CATCH',
+    'dec': 'DECLINE'
+}
 ERRORS = {
     100: "OK",
     200: "Wrong Recipient",
@@ -26,11 +35,6 @@ self_ip = "NONE"
 
 users = {}  # {"some user" : "some IP or socket or something", ...}
 blacklist = []  # ["ip1", "ip2", ...]
-
-
-def now() -> str:
-    return dt.now().strftime("%H:%M")
-# now()
 
 
 def createCheckSum(msg: bytes) -> bytes:
@@ -60,24 +64,6 @@ def checkSum(msg: bytes) -> bool:
 
     return check == sum
 # checkSum()
-
-
-def req(mtype: str, recip: str, body: str = None) -> str:
-    return mtype + " " +\
-        now() + " " +\
-        recip + " " +\
-        displayname + "\n" +\
-        body
-# req()
-
-
-def res(mtype: str, code: int, recip: str, body: str = None) -> str:
-    return mtype + " " +\
-        code + " " +\
-        recip + " " +\
-        displayname + "\n" +\
-        body
-# res()
 
 
 def send_all(message: bytes, conn: socket.socket) -> None:
@@ -111,6 +97,11 @@ def recieve(room: socket.socket, message: str) -> None:
         pass
     # if
 
+    if (mtype == "DECLINE"):
+        pass
+        #print("[" + now() + "] SERVER: Message Declined - " + ERRORS[code])
+    # if
+
     if (not is_host and mtype in ["JOIN", "DISCONNECT", "FETCH"]):
         # respond with res("DECLINE", 202, sender)
         pass
@@ -136,7 +127,6 @@ def broadcast() -> None:
 
 
 def send_message(room: socket.socket, msg: str) -> None:
-
     cmd = None
     body = msg
 
@@ -145,21 +135,30 @@ def send_message(room: socket.socket, msg: str) -> None:
     # if
 
     if (cmd == "/q"):
-        room.send()
-        # send to host req("DISCONNECT", "HOST")
         pass
+        #send_all(req(VERBS["dis"], 'SERVER'), room)
 
     elif (cmd == "/w"):
+        pass
         recip, body = body.split(" ", 1)
+        #send_all(req(VERBS["fet"], recip))
+        #send_all(req(VERBS["sen"], recip, body), )
 
         # send to host req("FETCH", "HOST", recip)
+
+    elif (cmd == "/b"):
+        pass
+
+    elif (cmd == "/k"):
+        pass
 
     elif (cmd == None):
         # send to host send("SEND", "HOST", body)
         pass
 
     else:
-        print("[" + now() + "] SERVER: Incorrect Message Formatting")
+        #print("[" + now() + "] SERVER: Incorrect Message Formatting")
+        pass
 
     # if/else
 # send_message()
