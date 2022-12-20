@@ -121,9 +121,10 @@ def recieve(room: socket.socket, message: str) -> None:
         pass
     # if
 
-    # BLACKLIST CATCHING GOES HERE
-
-    # MORE STUFF
+    if (room.getpeername() in blacklist):
+        # respond with res("DECLINE", 301, sender)
+        pass
+    # if
 
 # recieve()
 
@@ -151,7 +152,7 @@ def send_message(room: socket.socket, msg: str) -> None:
     elif (cmd == "/w"):
         recip, body = body.split(" ", 1)
 
-        # send to host req("FETCH"...)
+        # send to host req("FETCH", "HOST", recip)
 
     elif (cmd == None):
         # send to host send("SEND", "HOST", body)
