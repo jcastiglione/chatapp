@@ -37,8 +37,103 @@ class GUI:
         self.Login.withdraw()
         
         #setting server list as the first window that pops up
-        self.server_list = Toplevel()
+        self.server_list = Tk()
+        self.server_list.withdraw()
         
+        self.Host = Tk()
+        self.Host.withdraw()
+        
+        self.host_or_client = Toplevel()
+        
+        self.host_or_client.title("Chat App")
+        
+        self.host_or_client.resizable(False,False)
+        self.host_or_client.configure(width=600,
+                                      height=500)
+        
+        self.label2 = Label(self.host_or_client,
+                            text = "Please select host or client ",
+                            justify=CENTER,
+                            font = "Helvetica 14 bold")
+        self.label2.grid (column=0,row = 0, sticky = W)
+        
+        self.host_button = Button(self.host_or_client, text = "Host",
+                                  height = 3, width = 30,
+                                  command = self.host)
+        
+        self.host_button.grid(column=0,row=1,sticky=W)
+        
+        self.client_button = Button(self.host_or_client, text = "Client",
+                                    height=3, width=30,
+                                    command=self.server_List)
+        
+        self.client_button.grid(column=0, row=2,sticky=W)
+
+        
+        # starts the loop for all the windows 
+        self.Window.mainloop()
+        
+        
+    def host(self):
+        
+        #this function isnt complete because I cant point the entry name anywhere 
+        # until the integration happens we cant close this 
+        
+        self.host_or_client.destroy()
+        self.Host.deiconify()
+        
+        self.Host.title("Host")
+        
+        self.Host.resizable(False,False)
+        self.Host.configure(width=600,
+                            height=500)
+        
+        # create a Label
+        self.label3 = Label(self.Host,
+                         text="Please select a server name",
+                         justify=CENTER,
+                         font="Helvetica 14 bold")
+ 
+        self.label3.place(relheight=0.15,
+                       relx=0.2,
+                       rely=0.07)
+        # create a Label
+        self.nameentry = Label(self.Host,
+                               text="Name: ",
+                               font="Helvetica 12")
+ 
+        self.nameentry.place(relheight=0.2,
+                             relx=0.1,
+                             rely=0.2)
+ 
+        # create a entry box for
+        # tyoing the message
+        self.server_entry = Entry(self.Host,
+                               font="Helvetica 14")
+ 
+        self.server_entry.place(relwidth=0.4,
+                             relheight=0.12,
+                             relx=0.35,
+                             rely=0.2)
+ 
+        # set the focus of the cursor
+        self.nameentry.focus()
+ 
+        # create a Continue Button
+        # along with action
+        self.button_entry = Button(self.Host,
+                         text="CONTINUE",
+                         font="Helvetica 14 bold",
+                         command=lambda: self.goAhead(self.server_entry.get()))
+ 
+        self.button_entry.place(relx=0.4,
+                      rely=0.55)
+        
+        
+    def server_List(self):
+        
+        self.host_or_client.destroy()
+        self.server_list.deiconify()
         #setting the title 
         self.server_list.title("Server List")
         
@@ -64,9 +159,6 @@ class GUI:
             self.button.append(Button(self.server_list, text = "server name " + str(i+1),height = 3, width = 30,
                                       command=lambda i=i: self.login("servername " + str(i+1))))
             self.button[i].grid(column = 4, row = i+1, sticky=W)
-        
-        # starts the loop for all the windows 
-        self.Window.mainloop()
  
     def login(self,servername):
         
