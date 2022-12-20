@@ -101,7 +101,7 @@ def recieve(room: socket.socket, message: str) -> None:
     # if
 
     if (mtype == "DECLINE"):
-        print("[" + now() + "] SERVER: Message Declined - " + ERRORS[code])
+        print("[" + Mp.now() + "] SERVER: Message Declined - " + ERRORS[code])
     # if
 
     if (not is_host and mtype in ["JOIN", "DISCONNECT", "FETCH"]):
@@ -243,7 +243,7 @@ def send_typed_message(room: socket.socket, instance: Mp, msg: str) -> None:
     if (cmd == "/q"):
 
         if not is_host:
-            send_all( req("DISCONNECT", room_name), room)
+            send_all(Mp.req("DISCONNECT", room_name), room)
 
         else:
             pass
@@ -264,31 +264,31 @@ def send_typed_message(room: socket.socket, instance: Mp, msg: str) -> None:
 
         if is_host:
             recip, body = body.split(" ", 1)
-            send_all( req("SEND", recip, "BANNED BY HOST"), room)
+            send_all(Mp.req("SEND", recip, "BANNED BY HOST"), room)
                           
             blacklist.append(room.getpeername())
             room.close()
         else:
-            print("[" + now() + "] SERVER: Insufficent Permissions")
+            print("[" + Mp.now() + "] SERVER: Insufficent Permissions")
         # if/else
 
     elif (cmd == "/k"):
 
         if is_host:
             recip, body = body.split(" ", 1)
-            send_all(req("SEND", recip, "KICKED BY HOST", room))
+            send_all(Mp.req("SEND", recip, "KICKED BY HOST", room))
                           
             room.close()
         else:
-            print("[" + now() + "] SERVER: Insufficent Permissions")
+            print("[" + Mp.now() + "] SERVER: Insufficent Permissions")
         # if/else
 
     elif (cmd == None):
-        send_all( (req("SEND", room_name, body), room)
+        send_all((Mp.req("SEND", room_name, body), room))
         pass
 
     else:
-        print("[" + now() + "] SERVER: Incorrect Message Formatting")
+        print("[" + Mp.now() + "] SERVER: Incorrect Message Formatting")
 
     # if/else
 # send_typed_message()
