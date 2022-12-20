@@ -177,8 +177,16 @@ def send_typed_message(room: socket.socket, instance: Mp, msg: str) -> None:
     # if
 
     if (cmd == "/q"):
-        pass
-        #send_all(req(VERBS["dis"], 'SERVER'), room)
+
+        if not is_host:
+            send_all( req("DISCONNECT", room_name), room)
+
+        else:
+            pass
+            # send message to all users indicating room closed
+            # close all connections
+
+        # if/else
 
     elif (cmd == "/w"):
         pass
@@ -191,31 +199,32 @@ def send_typed_message(room: socket.socket, instance: Mp, msg: str) -> None:
     elif (cmd == "/b"):
 
         if is_host:
-            #send_all("hello i kicked u lmao")
+            recip, body = body.split(" ", 1)
+            send_all( req("SEND", recip, "BANNED BY HOST"), room)
+                          
             blacklist.append(room.getpeername())
             room.close()
         else:
-            #print("[" + now() + "] SERVER: Insufficent Permissions")
-            pass
+            print("[" + now() + "] SERVER: Insufficent Permissions")
         # if/else
 
     elif (cmd == "/k"):
 
         if is_host:
-            #send_all("hello i kicked u lmao")
+            recip, body = body.split(" ", 1)
+            send_all( req("SEND", recip, "KICKED BY HOST", room)
+                          
             room.close()
         else:
-            #print("[" + now() + "] SERVER: Insufficent Permissions")
-            pass
+            print("[" + now() + "] SERVER: Insufficent Permissions")
         # if/else
 
     elif (cmd == None):
-        # send to host send("SEND", "HOST", body)
+        send_all( (req("SEND", room_name, body), room)
         pass
 
     else:
-        #print("[" + now() + "] SERVER: Incorrect Message Formatting")
-        pass
+        print("[" + now() + "] SERVER: Incorrect Message Formatting")
 
     # if/else
 # send_typed_message()
@@ -257,6 +266,9 @@ if __name__ == "__main__":
             network_setting = neti.ifaddresses(inter).get(neti.AF_INET)[0]
             if network_setting['addr'] == self_ip:
                 break
+            # if
+        # if
+    # for
 
     print(network_setting)
 
@@ -268,6 +280,8 @@ if __name__ == "__main__":
         server_thread = threading.Thread(
             target=start_server, args=(server_socket,))
         server_thread.start()
+    # if
     if choice == 2:
         start_client()
+    # if
 # main()
