@@ -82,15 +82,12 @@ def send_all(message: bytes, conn: socket.socket) -> None:
 # send_all()
 
 
-def recieve_all(conn: socket.socket, content_length: int) -> bytes:
+def recieve_all(conn: socket.socket) -> bytes:
     partial_message = b''
-    while (len(partial_message) < content_length):
+    
+    while (b'\n' not in partial_message):
         # the body is constructed by reccuring recv calls
-        partial_message += conn.recv(
-            content_length - len(partial_message))
-    else:
-        message = partial_message
-    # while/else
+        partial_message += conn.recv(4096)
 # recieve_all()
 
 
@@ -298,7 +295,24 @@ def send_typed_message(room: socket.socket, instance: Mp, msg: str) -> None:
 
 
 def handle_client(conn: socket.socket, addr: str) -> None:
-    pass
+    init_rq = recieve_all(conn)
+
+    head, body = message.split("\n", 1)
+    mtype, code, recip, sender = body.split(" ", 3)
+
+    if mtype != "JOIN":
+        send_all( Mp.decline(conn, sender, 400) )
+        conn.close()
+        return
+
+    elif sender in users:
+        send_all( Mp.decline(conn, sender, 300) )
+        conn.close()
+        return
+
+    else:
+        send_all( Mp.invite(conn, sender) )
+    
 # handle_client()
 
 
@@ -366,6 +380,10 @@ if __name__ == "__main__":
                 if network_setting[0].get('addr') == self_ip:
                     network_setting = network_setting[0]
                     break
+                # if
+            # if
+        # if
+    # for
 
     print(network_setting)
 
