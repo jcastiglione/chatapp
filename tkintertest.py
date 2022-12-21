@@ -1,32 +1,61 @@
 import tkinter as tk
-
-import socket
 import threading
 from tkinter import *
 from tkinter import font
 from tkinter import ttk
 import time
+import ipaddress
+import select
+from random import randbytes
+from protocols import Mp
+import netifaces as neti
+import socket
+
  
-# import all functions /
-#  everything from chat.py file
-#from chat import *
+#CONSTANTS
+VERBS = {
+    'sen': "SEND",
+    'jn': "JOIN",
+    'dis': 'DISCONNECT',
+    'fet': 'FETCH',
+    'inv': 'INVITE',
+    'rec': 'RECIEVE',
+    'cat': 'CATCH',
+    'dec': 'DECLINE'
+}
+ERRORS = {
+    100: "OK",
+    200: "Wrong Recipient",
+    201: "Incorrect Room Recipient",
+    202: "Recipient is not Type:Host",
+    203: "Recipient is not Type:User",
+    204: "Desired Recipient Not Found",
+    300: "DisplayName Not Available",
+    301: "User has been blacklisted",
+    400: "Bad Request"
+}
+PORT = 9020
+
+# LOCAL VARS
+is_host = False
+client: Mp = "NONE"
+room_name = "NONE"
+self_ip = "NONE"
+
+known_chatrooms = {} # {"chatroom_name" : "ip address"}
+users = {}  # {"some user" : "some IP or socket or something", ...}
+blacklist = []  # ["ip1", "ip2", ...]
+
+
  
-# PORT = 5050
-# SERVER = "192.168.0.103"
-# ADDRESS = (SERVER, PORT)
-# FORMAT = "utf-8"
  
-# # Create a new client socket
-# # and connect to the server
-# client = socket.socket(socket.AF_INET,
-#                        socket.SOCK_STREAM)
-# client.connect(ADDRESS)
  
  
 # GUI class for the chat
-class GUI:
+class Gui:
     # constructor method
     def __init__(self):
+        
  
         # chat window which is currently hidden
         self.Window = Tk()
@@ -48,26 +77,27 @@ class GUI:
         self.host_or_client.title("Chat App")
         
         self.host_or_client.resizable(False,False)
-        self.host_or_client.configure(width=600,
-                                      height=500)
+        self.host_or_client.configure(width=400,
+                                      height=300)
         
         self.label2 = Label(self.host_or_client,
                             text = "Please select host or client ",
                             justify=CENTER,
                             font = "Helvetica 14 bold")
-        self.label2.grid (column=0,row = 0, sticky = W)
+        
+        self.label2.place(relx=0.5,rely=0.2,anchor=CENTER)
         
         self.host_button = Button(self.host_or_client, text = "Host",
                                   height = 3, width = 30,
                                   command = self.host)
         
-        self.host_button.grid(column=0,row=1,sticky=W)
+        self.host_button.place(relx=0.5,rely=0.4,anchor=CENTER)
         
         self.client_button = Button(self.host_or_client, text = "Client",
                                     height=3, width=30,
                                     command=self.server_List)
         
-        self.client_button.grid(column=0, row=2,sticky=W)
+        self.client_button.place(relx=0.5,rely=0.6,anchor=CENTER)
 
         
         # starts the loop for all the windows 
@@ -78,7 +108,7 @@ class GUI:
         
         #this function isnt complete because I cant point the entry name anywhere 
         # until the integration happens we cant close this 
-        
+
         self.host_or_client.destroy()
         self.Host.deiconify()
         
@@ -148,17 +178,24 @@ class GUI:
                            text="please select a server to continue",
                            justify=CENTER,
                            font="Helvetica 14 bold")
-        self.label1.grid(column=4, row = 0, sticky=W)
+        self.label1.place(relx=0.5,rely=0.1,anchor=CENTER)
         
         # creating the button list 
         self.button = []
         
+        client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        listner = threading.Thread(target=refresh_chatrooms, daemon=True)
+        listner.start()
+        broadcast()
+        
         # for loop to make buttons and attach them to grid 
         # then the lambda calls the login window and attaches the server name 
-        for i in range(3):
-            self.button.append(Button(self.server_list, text = "server name " + str(i+1),height = 3, width = 30,
-                                      command=lambda i=i: self.login("servername " + str(i+1))))
-            self.button[i].grid(column = 4, row = i+1, sticky=W)
+        i = 0
+        for key in known_chatrooms:
+            self.button.append(Button(self.server_list, text = str(key), height = 3, width = 30,
+                                      command=lambda key=key: self.login(key)))
+            self.button[i].place(relx=0.5,rely=(0.2 + (i/10)),anchor=CENTER)
+            i = i + 1
  
     def login(self,servername):
         
@@ -218,22 +255,35 @@ class GUI:
         self.go = Button(self.Login,
                          text="CONTINUE",
                          font="Helvetica 14 bold",
-                         command=lambda: self.goAhead(self.entryName.get()))
+                         command=lambda: self.goAhead(self.entryName.get(),servername))
  
         self.go.place(relx=0.4,
                       rely=0.55)
     
  
-    def goAhead(self, name):
+    def goAhead(self, name, servername=None):
         self.Login.destroy()
-        self.layout(name)
+        self.Host.destroy()
+        self.layout(name,servername)
  
         # the thread to receive messages
         rcv = threading.Thread(target=self.receive)
         rcv.start()
  
     # The main layout of the chat
-    def layout(self, name):
+    def layout(self, name, servername=None):
+        
+        if servername != None:
+            self_ip = known_chatrooms[servername]
+            server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            server_socket.bind((self_ip, PORT))
+            broadcast_thread = threading.Thread(target=recv_broadcast, args=(servername,), daemon=True)
+            broadcast_thread.start()
+            server_thread = threading.Thread(
+                target=start_server, args=(server_socket,))
+            server_thread.start()
+            
+        
  
         self.name = name
         # to show chat window
@@ -326,20 +376,24 @@ class GUI:
         self.textCons.config(state=DISABLED)
         self.msg = msg
         self.entryMsg.delete(0, END)
-        snd = threading.Thread(target=self.sendMessage)
+        snd = threading.Thread(target=self.sendMessage())
         snd.start()
  
     # function to receive messages
     def receive(self):
         i=0
-        while i < 10:  
-            message = "Breadsticks: hi"
+        while i<10:
             self.textCons.config(state=NORMAL)
-            self.textCons.insert(END, message+"\n\n")
+            self.textCons.insert(END, "Breadsticks: Hi"+"\n\n")
+ 
             self.textCons.config(state=DISABLED)
             self.textCons.see(END)
-            time.sleep(5)
             i = i + 1
+            time.pause(2)  
+        
+        
+        pass
+        
         # while True:
         #     try:
         #         message = client.recv(1024).decode(FORMAT)
@@ -362,7 +416,8 @@ class GUI:
         #         break
  
     # function to send messages
-    def sendMessage(self):
+    def sendMessage(self,):
+        
         #self.textCons.config(state=DISABLED)
         message = (f"{self.name}: {self.msg}")
         self.textCons.config(state=NORMAL)
@@ -377,27 +432,134 @@ class GUI:
         #     break
  
  
+ 
+def create_check_sum(msg: bytes) -> bytes:
+    out = 0
+
+    for b in msg:
+        out += b
+    # for
+
+    return (-(out % 2**16)).to_bytes(2, byteorder='big', signed=True)
+# createCheckSum
+ 
+def check_sum(msg: bytes) -> bool:
+    sum = 0
+
+    for i in range(len(msg)):
+        if i != 2 and i != 3:
+            sum += msg[i]
+        # if
+        
+    sum += int.from_bytes(msg[2:4], byteorder='big', signed=True)
+    # for
+    
+    return (sum % 2**16) == 0
+# checkSum()
+
+def send_all(message: bytes, conn: socket.socket) -> None:
+    length = len(message)
+    sent_bytes = 0
+
+    while length > sent_bytes:
+        sent_bytes += conn.send(message[sent_bytes:])
+    # while
+# send_all()
+
+def recieve_all(conn: socket.socket, content_length: int) -> bytes:
+    partial_message = b''
+    while (len(partial_message) < content_length):
+        # the body is constructed by reccuring recv calls
+        partial_message += conn.recv(
+            content_length - len(partial_message))
+    else:
+        message = partial_message
+    # while/else
+# recieve_all()
+
+def broadcast() -> None:
+    # creates a socket that is allowed to send broadcast messages
+    bcst_sckt = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    bcst_sckt.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+    
+    
+    first_line = b'\x00' + b'\x00'
+    conn_desc = randbytes(4) + int(ipaddress.ip_address(self_ip)).to_bytes(4, byteorder='big') +\
+                int(ipaddress.ip_address(network_setting['broadcast'])).to_bytes(4, byteorder='big')
+    chk_sum = create_check_sum(first_line + conn_desc)
+    
+    bcst_sckt.sendto(first_line + chk_sum + conn_desc, (network_setting['broadcast'], PORT))
+    
+    
+# broadcast()
+
+def recv_broadcast(server_name: str) -> None:
+    # creates a socket that is allowed to send broadcast messages
+    bcst_sckt = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    bcst_sckt.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+    
+    bcst_sckt.bind((network_setting['broadcast'], PORT))
+    while True:
+        header = bcst_sckt.recv(16)
+        name = bcst_sckt.recv(header[1])
+        
+        if not check_sum(header + name) or header[0] == 1:
+            continue
+        
+        body = server_name.encode(Mp.ENC_TYPE)
+        first_line = b'\x01' + len(body).to_bytes(1, byteorder='big')
+        conn_desc = header[4:8] + int(ipaddress.ip_address(self_ip)).to_bytes(4, byteorder='big') +\
+                    header[8:12]
+        
+        chk_sum = create_check_sum(first_line + conn_desc + body)
+        res = first_line + chk_sum + conn_desc + body
+        
+        bcst_sckt.sendto(res, (str(ipaddress.ip_address(int.from_bytes(header[8:12], byteorder='big'))), PORT))
+        
+# recv_broadcast()
+
+def refresh_chatrooms():
+    refresh_sckt = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    refresh_sckt.bind((self_ip, PORT))
+    
+    inputs = [refresh_sckt]
+    outputs = []
+    
+    while inputs:
+        
+        readable, writable, exceptional = select.select(inputs, outputs, inputs)
+        
+        for s in readable:
+            if s is refresh_sckt:
+                header = s.recv(2**10)
+                name = header[len(header) - header[1]:]
+                
+                if (not check_sum(header) or header[0] == 0 
+                    or name.decode(Mp.ENC_TYPE) in known_chatrooms.keys()):
+                    continue
+                
+                name = name.decode(Mp.ENC_TYPE)
+                ip = str(ipaddress.ip_address(header[8:12]))
+                
+                known_chatrooms[name] = ip
+                print("Recieved Chatroom")
+ 
+ 
+self_ip = socket.gethostbyname(socket.gethostname())
+network_setting = None
+for inter in neti.interfaces():
+    if inter is not None:
+        network_setting = neti.ifaddresses(inter).get(neti.AF_INET)
+        if network_setting is not None:
+            if network_setting[0].get('addr') == self_ip:
+                network_setting = network_setting[0]
+                break
+ 
+def start_server(socket: socket.socket) -> None:
+    socket.listen(5)
+
+    while True:
+        conn, addr = socket.accept()
+ 
 # create a GUI class object
-g = GUI()
-
-
-
-
-# root= tk.Tk()
-
-# canvas1 = tk.Canvas(root, width=400, height=300)
-# canvas1.pack()
-
-# entry1 = tk.Entry(root)
-# canvas1.create_window(200,140,window=entry1)
-
-# def input():
-#     username = entry1.get()
-    
-#     label1 = tk.Label(root, text=str(username))
-#     canvas1.create_window(200, 230, window=label1)
-    
-# button1 = tk.Button(text='Enter', command=input)
-# canvas1.create_window(200,180, window=button1)
-
-# root.mainloop()
+g = Gui()
