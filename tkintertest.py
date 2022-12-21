@@ -46,7 +46,7 @@ known_chatrooms = {} # {"chatroom_name" : "ip address"}
 users = {}  # {"some user" : "some IP or socket or something", ...}
 blacklist = []  # ["ip1", "ip2", ...]
 
-
+server: Mp = "None"
  
  
  
@@ -201,6 +201,8 @@ class Gui:
  
     def login(self,servername):
         
+        server = Mp(servername)
+        
         #gets rid of the server name selection window 
         self.server_list.destroy()
         
@@ -275,6 +277,8 @@ class Gui:
     # The main layout of the chat
     def layout(self, name, servername=None):
         
+        client = Mp(name)
+        
         if servername != None:
             server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             server_socket.bind((self_ip, PORT))
@@ -285,7 +289,7 @@ class Gui:
             server_thread.start()
             
             client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            client_socket.connect( self_ip, PORT)
+            client_socket.connect((self_ip, PORT))
             client.join(client_socket, "HOST")
         else:
             client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -491,6 +495,7 @@ def recieve_all(conn: socket.socket) -> bytes:
     while (b'\n' not in partial_message):
         # the body is constructed by reccuring recv calls
         partial_message += conn.recv(4096)
+    return(partial_message)
 # recieve_all()
 
 def broadcast() -> None:
@@ -583,20 +588,20 @@ def handle_client(conn: socket.socket, addr: str) -> None:
     init_rq = recieve_all(conn).decode(Mp.ENC_TYPE)
 
     head, body = init_rq.split("\n", 1)
-    mtype, code, recip, sender = body.split(" ", 3)
+    mtype, code, recip, sender = head.split(" ", 3)
 
     if mtype != "JOIN":
-        send_all( Mp.decline(conn, sender, 400) )
+        server.decline(conn, sender, 400)
         conn.close()
         return
 
     elif sender in users:
-        send_all( Mp.decline(conn, sender, 300) )
+        server.decline(conn, sender, 300)
         conn.close()
         return
 
     else:
-        send_all( Mp.invite(conn, sender) )
+        server.invite(conn, sender)
     
 # handle_client()
  
