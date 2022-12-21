@@ -284,7 +284,25 @@ class Gui:
                 target=start_server, args=(server_socket,))
             server_thread.start()
             
+            client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            client_socket.connect( self_ip, PORT)
+            client.join(client_socket, "HOST")
+        else:
+            client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            client_socket.connect( known_chatrooms[servername], PORT)
+            client.join(client_socket, "HOST")
         
+        
+        message = recieve_all(client_socket).decode(Mp.ENC_TYPE)
+        
+        head, body = message.split("\n", 1)
+        mtype, code, recip, sender = body.split(" ", 3)
+        
+        # we still need to finish this for making a re login
+        if mtype == "DECLINE":
+            print("Connection Declined: " + ERRORS[code])
+            quit()
+            
  
         self.name = name
         # to show chat window
@@ -467,15 +485,12 @@ def send_all(message: bytes, conn: socket.socket) -> None:
     # while
 # send_all()
 
-def recieve_all(conn: socket.socket, content_length: int) -> bytes:
+def recieve_all(conn: socket.socket) -> bytes:
     partial_message = b''
-    while (len(partial_message) < content_length):
+    
+    while (b'\n' not in partial_message):
         # the body is constructed by reccuring recv calls
-        partial_message += conn.recv(
-            content_length - len(partial_message))
-    else:
-        message = partial_message
-    # while/else
+        partial_message += conn.recv(4096)
 # recieve_all()
 
 def broadcast() -> None:
@@ -561,6 +576,29 @@ def start_server(socket: socket.socket) -> None:
 
     while True:
         conn, addr = socket.accept()
+        thread = threading.Thread(target=handle_client, args=(conn, addr))
+        thread.start()
+        
+def handle_client(conn: socket.socket, addr: str) -> None:
+    init_rq = recieve_all(conn).decode(Mp.ENC_TYPE)
+
+    head, body = init_rq.split("\n", 1)
+    mtype, code, recip, sender = body.split(" ", 3)
+
+    if mtype != "JOIN":
+        send_all( Mp.decline(conn, sender, 400) )
+        conn.close()
+        return
+
+    elif sender in users:
+        send_all( Mp.decline(conn, sender, 300) )
+        conn.close()
+        return
+
+    else:
+        send_all( Mp.invite(conn, sender) )
+    
+# handle_client()
  
 # create a GUI class object
 g = Gui()
