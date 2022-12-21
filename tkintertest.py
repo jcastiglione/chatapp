@@ -271,7 +271,7 @@ class Gui:
         rcv.start()
  
     # The main layout of the chat
-    def layout(self, name, room: socket.socket, servername=None):
+    def layout(self, name, servername=None):
         
         if servername != None:
             self_ip = known_chatrooms[servername]
@@ -372,15 +372,25 @@ class Gui:
         self.textCons.config(state=DISABLED)
  
     # function to basically start the thread for sending messages
-    def sendButton(self, msg, room: socket.socket):
+    def sendButton(self, msg):
         self.textCons.config(state=DISABLED)
         self.msg = msg
         self.entryMsg.delete(0, END)
-        snd = threading.Thread(target=self.sendMessage(room))
+        snd = threading.Thread(target=self.sendMessage())
         snd.start()
  
     # function to receive messages
-    def receive(self, room: socket.socket):
+    def receive(self):
+        i=0
+        while i<10:
+            self.textCons.config(state=NORMAL)
+            self.textCons.insert(END, "Breadsticks: Hi"+"\n\n")
+ 
+            self.textCons.config(state=DISABLED)
+            self.textCons.see(END)
+            i = i + 1
+            time.pause(2)  
+        
         
         pass
         
@@ -406,7 +416,7 @@ class Gui:
         #         break
  
     # function to send messages
-    def sendMessage(self, msg, room:socket.socket, instance: Mp):
+    def sendMessage(self,):
         
         #self.textCons.config(state=DISABLED)
         message = (f"{self.name}: {self.msg}")
