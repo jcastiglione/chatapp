@@ -154,7 +154,7 @@ class Gui:
         self.button_entry = Button(self.Host,
                          text="CONTINUE",
                          font="Helvetica 14 bold",
-                         command=lambda: self.goAhead(self.server_entry.get()))
+                         command=lambda: self.login(self.server_entry.get()))
  
         self.button_entry.place(relx=0.4,
                       rely=0.55)
@@ -185,8 +185,10 @@ class Gui:
         
         client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         listner = threading.Thread(target=refresh_chatrooms, daemon=True)
-        listner.start()
+        listner.start() 
         broadcast()
+        
+        time.sleep(5)
         
         # for loop to make buttons and attach them to grid 
         # then the lambda calls the login window and attaches the server name 
@@ -274,7 +276,6 @@ class Gui:
     def layout(self, name, servername=None):
         
         if servername != None:
-            self_ip = known_chatrooms[servername]
             server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             server_socket.bind((self_ip, PORT))
             broadcast_thread = threading.Thread(target=recv_broadcast, args=(servername,), daemon=True)
@@ -389,7 +390,7 @@ class Gui:
             self.textCons.config(state=DISABLED)
             self.textCons.see(END)
             i = i + 1
-            time.pause(2)  
+            time.sleep(2)  
         
         
         pass
