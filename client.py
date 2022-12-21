@@ -43,6 +43,8 @@ known_chatrooms = {} # {"chatroom_name" : "ip address"}
 users = {}  # {"some user" : "some IP or socket or something", ...}
 blacklist = []  # ["ip1", "ip2", ...]
 
+message_cache = "" #1-length message cache, used for /w
+
 
 def create_check_sum(msg: bytes) -> bytes:
     out = 0
@@ -128,9 +130,10 @@ def recieve(room: socket.socket, message: str) -> None:
 
     elif mtype == "JOIN":
         if (sender in users.keys):
-            pass
             send_all( Mp.res("DECLINE", 300, sender), room)
-        # if
+        else:
+            pass
+        # if/else
         pass
 
     elif mtype == "DISCONNECT":
@@ -311,17 +314,44 @@ def start_server(socket: socket.socket) -> None:
 
 def start_client() -> None:
     name = input("Choose display name: ")
-    #client = Mp(name)
+    client = Mp(name)
     client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     listner = threading.Thread(target=refresh_chatrooms, daemon=True)
     listner.start()
     broadcast()
 
-    while True:
+    inRoom = False
+
+    while not inRoom:
         print(known_chatrooms)
-        sleep(2)
+        
+        validChoice = False
+
+        while not validChoice:
+            choice = input('Enter list number of desired chatroom (1 -> n) or r to refresh list)')
+
+            if choice == 'r':
+
+                validChoice = True
+
+            elif 0 < int(choice) and len(known_chatrooms) >= int(choice):
+                client_socket.connect( (known_chatrooms[known_chatrooms.keys[int(choice)]], PORT) )
+                client.join(client_socket, "HOST")
+
+                validChoice = True
+                #inRoom = True
+
+            else:
+
+                print("Invalid Selection")
+        
+            # if/else
+
+        # while
+        
         # msg = input("Enter Message: ")
         # send_typed_message(client_socket, client, msg)
+        
     # while
 # start_client()
 
