@@ -55,7 +55,6 @@ server: Mp = "None"
 class Gui:
     # constructor method
     def __init__(self):
-        
  
         # chat window which is currently hidden
         self.Window = Tk()
@@ -201,7 +200,6 @@ class Gui:
  
     def login(self,servername):
         
-        server = Mp(servername)
         
         #gets rid of the server name selection window 
         self.server_list.destroy()
@@ -269,6 +267,7 @@ class Gui:
         self.Login.destroy()
         self.Host.destroy()
         self.layout(name,servername)
+        
  
         # the thread to receive messages
         rcv = threading.Thread(target=self.receive)
@@ -277,35 +276,36 @@ class Gui:
     # The main layout of the chat
     def layout(self, name, servername=None):
         
-        client = Mp(name)
+        # client = Mp(name)
+        # server = Mp(servername)
         
-        if servername != None:
-            server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            server_socket.bind((self_ip, PORT))
-            broadcast_thread = threading.Thread(target=recv_broadcast, args=(servername,), daemon=True)
-            broadcast_thread.start()
-            server_thread = threading.Thread(
-                target=start_server, args=(server_socket,))
-            server_thread.start()
+        # if servername != None:
+        #     server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        #     server_socket.bind((self_ip, PORT))
+        #     broadcast_thread = threading.Thread(target=recv_broadcast, args=(servername,), daemon=True)
+        #     broadcast_thread.start()
+        #     server_thread = threading.Thread(
+        #         target=start_server, args=(server_socket,))
+        #     server_thread.start()
             
-            client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            client_socket.connect((self_ip, PORT))
-            client.join(client_socket, "HOST")
-        else:
-            client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            client_socket.connect( known_chatrooms[servername], PORT)
-            client.join(client_socket, "HOST")
+        #     client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        #     client_socket.connect((self_ip, PORT))
+        #     client.join(client_socket, "HOST")
+        # else:
+        #     client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        #     client_socket.connect( known_chatrooms[servername], PORT)
+        #     client.join(client_socket, "HOST")
         
         
-        message = recieve_all(client_socket).decode(Mp.ENC_TYPE)
+        # message = recieve_all(client_socket).decode(Mp.ENC_TYPE)
         
-        head, body = message.split("\n", 1)
-        mtype, code, recip, sender = body.split(" ", 3)
+        # head, body = message.split("\n", 1)
+        # mtype, code, recip, sender = body.split(" ", 3)
         
-        # we still need to finish this for making a re login
-        if mtype == "DECLINE":
-            print("Connection Declined: " + ERRORS[code])
-            quit()
+        # # we still need to finish this for making a re login
+        # if mtype == "DECLINE":
+        #     print("Connection Declined: " + ERRORS[code])
+        #     quit()
             
  
         self.name = name
